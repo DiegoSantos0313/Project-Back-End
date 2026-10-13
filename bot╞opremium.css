@@ -1,0 +1,99 @@
+/* ==========================================================
+   BOTÃO PREMIUM - UNICOFFEE
+   ----------------------------------------------------------
+   Descrição:
+   Estilização do botão principal do sistema.
+   Compatível com links (<a>) e pode ser adaptado para <button>.
+   ========================================================== */
+
+/* Container do botão */
+.botao-premium {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    margin-top: 2rem;
+    text-align: center;
+}
+
+/* Botão */
+.botao-premium a {
+
+    /* Layout */
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-width: 220px;
+    padding: 14px 36px;
+
+    /* Aparência */
+    background: linear-gradient(135deg, #3E2C1C 0%, #5A3B26 100%);
+    color: #FFFFFF;
+    text-decoration: none;
+    border: 2px solid rgba(200, 155, 109, 0.25);
+
+    /* Tipografia */
+    font-size: 1.05rem;
+    font-weight: 700;
+    letter-spacing: 0.03em;
+    line-height: 1.2;
+
+    /* Bordas */
+    border-radius: 999px;
+
+    /* Cursor */
+    cursor: pointer;
+
+    /* Sombra */
+    box-shadow: 0 10px 25px rgba(0, 0, 0, 0.18);
+
+    /* Animações */
+    transition:
+        background 0.25s ease,
+        transform 0.2s ease,
+        box-shadow 0.2s ease,
+        border-color 0.2s ease;
+
+}
+
+/* Quando o mouse passa sobre o botão */
+.botao-premium a:hover {
+
+    background: linear-gradient(135deg, #6B4B2D 0%, #8A5E39 100%);
+    border-color: rgba(200, 155, 109, 0.6);
+    transform: translateY(-2px);
+    box-shadow: 0 14px 30px rgba(0, 0, 0, 0.22);
+
+}
+
+/* Quando o botão é pressionado */
+.botao-premium a:active {
+
+    transform: translateY(0) scale(0.98);
+    box-shadow: 0 8px 18px rgba(0, 0, 0, 0.18);
+
+}
+
+/* Acessibilidade - Navegação por teclado */
+.botao-premium a:focus-visible {
+
+    outline: 3px solid #C89B6D;
+    outline-offset: 4px;
+
+}
+
+/* Responsividade */
+@media (max-width: 768px) {
+
+    .botao-premium {
+        margin-top: 1.5rem;
+    }
+
+    .botao-premium a {
+
+        width: min(100%, 320px);
+        font-size: 0.98rem;
+        padding: 14px 18px;
+
+    }
+
+}

@@ -1,0 +1,9 @@
+<?php
+$email = $_GET['email'] ?? '';
+?>
+<form action="verificar_conta_processa.php" method="POST">
+    <input type="hidden" name="email" value="<?= htmlspecialchars($email) ?>">
+    <label>Código de verificação:</label>
+    <input type="text" name="codigo" maxlength="6" required>
+    <button type="submit">Verificar</button>
+</form>
