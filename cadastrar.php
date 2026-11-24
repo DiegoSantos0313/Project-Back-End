@@ -1,136 +1,220 @@
 <?php
-ini_set('display_errors', 1);
-ini_set('log_errors', 1);
-ini_set('error_log', 'logs/php_errors.log');
-error_reporting(E_ALL);
-ini_set('display_errors',0);
-
-// Permite somente requisições HTTP POST
-if (!isset($_SERVER['REQUEST_METHOD']) || $_SERVER['REQUEST_METHOD'] !== 'POST') {
-    http_response_code(405);
-exit("Método não permitido.");
-}
-
-// Configuração da conexão com o banco MySQL
-$host = "localhost";
-$user = 'root';
-$pass = '';
-$db   = 'unicoffe_db';
+session_start();
+require_once __DIR__ . '/conexao.php';
 
 mysqli_report(MYSQLI_REPORT_ERROR | MYSQLI_REPORT_STRICT);
-$conn = new mysqli($host, $user, $pass, $db);
-if ($conn->connect_error) {
-    error_log($conn->connect_error);
-http_response_code(500);
-exit("Erro interno. Tente novamente mais tarde.");
-}
 
-// Remove espaços e sanitiza entradas de texto
-function limpar(string $str): string
+function encerrar(int $status, string $mensagem): void
 {
-   return trim($str);
-}
-// Recebe e sanitiza os dados enviados pelo formulário
-$nome           = limpar($_POST['nome'] ?? '');
-$dataNascimento = limpar($_POST['dataNascimento'] ?? '');
-$mae           = limpar($_POST['mae']  ?? '');
-$cpf           = limpar($_POST['cpf']  ?? '');
-$cep           = limpar($_POST['cep']  ?? '');
-$endereco      = limpar($_POST['endereco']  ?? '');
-$complemento   = limpar($_POST['complemento']  ?? '');
-$email         = limpar($_POST['email']  ?? '');
-$telefone      = limpar($_POST['telefone']  ?? '');
-$login         = limpar($_POST['login']  ?? '');
-$senha         = $_POST['senha']  ?? '';
-
-// Validação dos dados recebidos
-if (mb_strlen($nome) < 3 || mb_strlen($nome) > 80) {
-   throw new Exception("Nome inválido.");
+    http_response_code($status);
+    header('Content-Type: text/plain; charset=UTF-8');
+    exit($mensagem);
 }
 
-if (!filter_var($email, FILTER_VALIDATE_EMAIL)) {
-    http_response_code(400);
-exit("E-mail inválido.");
+function campoPost(string $nome): ?string
+{
+    $valor = $_POST[$nome] ?? '';
+
+    return is_string($valor) ? trim($valor) : null;
 }
 
-if (strlen($senha) < 6) {
-    http_response_code(400);
-exit("A senha deve ter pelo menos 6 caracteres.");
+function tamanhoTexto(string $texto): int
+{
+    if (function_exists('mb_strlen')) {
+        return mb_strlen($texto, 'UTF-8');
+    }
+
+    $quantidade = preg_match_all('/./us', $texto, $correspondencias);
+
+    return $quantidade === false ? 0 : $quantidade;
 }
 
-// Verifica duplicidade do e-mail
-$checkEmail = $conn->prepare("SELECT id FROM usuarios WHERE email = ?");
-$checkEmail->bind_param("s", $email);
-$checkEmail->execute();
-$checkEmail->store_result();
-if ($checkEmail->num_rows > 0) {
-    http_response_code(409);
-exit("Este e-mail já está cadastrado.");
+function cpfValido(string $cpf): bool
+{
+    if (!preg_match('/^[0-9.\-\s]+$/', $cpf)) {
+        return false;
+    }
+
+    $cpf = preg_replace('/\D/', '', $cpf);
+
+    if (strlen($cpf) !== 11 || preg_match('/^(\d)\1{10}$/', $cpf)) {
+        return false;
+    }
+
+    for ($posicao = 9; $posicao <= 10; $posicao++) {
+        $soma = 0;
+
+        for ($indice = 0; $indice < $posicao; $indice++) {
+            $soma += (int) $cpf[$indice] * (($posicao + 1) - $indice);
+        }
+
+        $digito = ($soma * 10) % 11;
+        $digito = $digito === 10 ? 0 : $digito;
+
+        if ((int) $cpf[$posicao] !== $digito) {
+            return false;
+        }
+    }
+
+    return true;
 }
 
-// Consulta o banco para verificar duplicidade do login
-$checkLogin = $conn->prepare("SELECT id FROM usuarios WHERE login = ?");
-$checkLogin->bind_param("s", $login);
-$checkLogin->execute();
-$checkLogin->store_result();
-if ($checkLogin->num_rows > 0) {
-   http_response_code(409);
-exit("Este login já está em uso.");
+if (($_SERVER['REQUEST_METHOD'] ?? '') !== 'POST') {
+    header('Allow: POST');
+    encerrar(405, 'Método não permitido.');
 }
 
-// Gera o hash seguro da senha antes de armazená-la
+$csrfToken = campoPost('csrf_token');
+
+if (
+    $csrfToken === null ||
+    empty($_SESSION['csrf_token']) ||
+    !hash_equals($_SESSION['csrf_token'], $csrfToken)
+) {
+    encerrar(403, 'Sessão expirada ou requisição inválida. Atualize o formulário e tente novamente.');
+}
+
+$nome           = campoPost('nome');
+$dataNascimento = campoPost('dataNascimento');
+$mae            = campoPost('mae');
+$cpfInformado   = campoPost('cpf');
+$cepInformado   = campoPost('cep');
+$endereco       = campoPost('endereco');
+$complemento    = campoPost('complemento');
+$email          = campoPost('email');
+$telefoneInformado = campoPost('telefone');
+$login          = campoPost('login');
+$senha          = $_POST['senha'] ?? null;
+
+if (
+    $nome === null ||
+    $dataNascimento === null ||
+    $mae === null ||
+    $cpfInformado === null ||
+    $cepInformado === null ||
+    $endereco === null ||
+    $complemento === null ||
+    $email === null ||
+    $telefoneInformado === null ||
+    $login === null ||
+    !is_string($senha)
+) {
+    encerrar(400, 'Os dados enviados são inválidos.');
+}
+
+if (tamanhoTexto($nome) < 3 || tamanhoTexto($nome) > 80) {
+    encerrar(400, 'Informe um nome com no mínimo 3 e no máximo 80 caracteres.');
+}
+
+if ($mae === '' || tamanhoTexto($mae) > 80) {
+    encerrar(400, 'Informe o nome da mãe, com até 80 caracteres.');
+}
+
+if (
+    !preg_match('/^\d{4}-\d{2}-\d{2}$/', $dataNascimento) ||
+    !checkdate(
+        (int) substr($dataNascimento, 5, 2),
+        (int) substr($dataNascimento, 8, 2),
+        (int) substr($dataNascimento, 0, 4)
+    ) ||
+    $dataNascimento > date('Y-m-d')
+) {
+    encerrar(400, 'Informe uma data de nascimento válida.');
+}
+
+if (!filter_var($email, FILTER_VALIDATE_EMAIL) || strlen($email) > 254) {
+    encerrar(400, 'Informe um e-mail válido.');
+}
+
+if (
+    !preg_match('/^[a-zA-Z0-9_.-]{3,30}$/', $login)
+) {
+    encerrar(400, 'O login deve ter de 3 a 30 caracteres e conter apenas letras, números, ponto, hífen ou sublinhado.');
+}
+
+if (strlen($senha) < 8) {
+    encerrar(400, 'A senha deve ter pelo menos 8 caracteres.');
+}
+
+if (tamanhoTexto($endereco) < 3 || tamanhoTexto($endereco) > 180) {
+    encerrar(400, 'Informe um endereço válido, com até 180 caracteres.');
+}
+
+if (tamanhoTexto($complemento) > 100) {
+    encerrar(400, 'O complemento deve ter até 100 caracteres.');
+}
+
+if (!cpfValido($cpfInformado)) {
+    encerrar(400, 'Informe um CPF válido.');
+}
+
+$cpf = preg_replace('/\D/', '', $cpfInformado);
+$cep = preg_replace('/\D/', '', $cepInformado);
+$telefone = preg_replace('/\D/', '', $telefoneInformado);
+
+if (strlen($cep) !== 8) {
+    encerrar(400, 'Informe um CEP válido com 8 números.');
+}
+
+if (!in_array(strlen($telefone), [10, 11], true)) {
+    encerrar(400, 'Informe um telefone válido com DDD.');
+}
+
 $senhaHash = password_hash($senha, PASSWORD_DEFAULT);
 
-// Prepara a inserção do novo usuário no banco de dados
-$sql = "INSERT INTO usuarios 
-(nome, data_nascimento, nome_mae, cpf, cep, endereco, complemento, email, telefone, login, senha_hash) 
-VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)";
-
-$stmt = $conn->prepare($sql);
-
-if (!$stmt) {
-    error_log("Erro ao preparar cadastro: " . $conn->error);
-    http_response_code(500);
-    exit("Não foi possível processar o cadastro.");
+if ($senhaHash === false) {
+    error_log('Não foi possível gerar o hash da senha do cadastro.');
+    encerrar(500, 'Não foi possível processar o cadastro. Tente novamente.');
 }
-$stmt->bind_param("sssssssssss", 
-    $nome, $dataNascimento, $mae, $cpf, $cep, $endereco, $complemento, 
-    $email, $telefone, $login, $senhaHash
-);
 
-// Executa a inserção do usuário no banco de dados
-if ($stmt->execute()) {
-    error_log($stmt->error);
-    http_response_code(500);
-    exit("Não foi possível concluir o cadastro.");
-    
-   // Registra o sucesso do cadastro no sistema de logs
-    $log = $conn->prepare("INSERT INTO mensagens_log (tipo, mensagem) VALUES ('cadastro', 'Cadastro realizado com sucesso')");
-    if ($log) {
-    if (!$log->execute()) {
-        error_log($log->error);
+try {
+    $stmt = $conn->prepare(
+        'SELECT id FROM usuarios WHERE email = ? OR login = ? OR cpf = ? LIMIT 1'
+    );
+    $stmt->bind_param('sss', $email, $login, $cpf);
+    $stmt->execute();
+    $stmt->store_result();
+
+    if ($stmt->num_rows > 0) {
+        $stmt->close();
+        encerrar(409, 'E-mail, login ou CPF já cadastrado.');
     }
-}
 
-    header("Location: login.html?sucesso=cadastro");
-    exit();
-    
-} else {
-    // Registra a falha do cadastro no sistema de logs
-    $log = $conn->prepare("INSERT INTO mensagens_log (tipo, mensagem) VALUES ('cadastro', 'Erro ao cadastrar usuário')");
-   if ($log) {
-    if (!$log->execute()) {
-        error_log($log->error);
+    $stmt->close();
+
+    $sql = 'INSERT INTO usuarios
+        (nome, data_nascimento, nome_mae, cpf, cep, endereco, complemento, email, telefone, login, senha_hash)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)';
+
+    $stmt = $conn->prepare($sql);
+    $stmt->bind_param(
+        'sssssssssss',
+        $nome,
+        $dataNascimento,
+        $mae,
+        $cpf,
+        $cep,
+        $endereco,
+        $complemento,
+        $email,
+        $telefone,
+        $login,
+        $senhaHash
+    );
+    $stmt->execute();
+    $stmt->close();
+
+    unset($_SESSION['csrf_token']);
+
+    header('Location: login.html?sucesso=cadastro');
+    exit;
+} catch (mysqli_sql_exception $e) {
+    error_log('Erro ao cadastrar usuário: ' . $e->getMessage());
+
+    // Também cobre duplicidade ocorrida entre a consulta e a inserção.
+    if ((int) $e->getCode() === 1062) {
+        encerrar(409, 'E-mail, login ou CPF já cadastrado.');
     }
+
+    encerrar(500, 'Não foi possível concluir o cadastro. Tente novamente.');
 }
-
-    http_response_code(500);
-exit("Não foi possível concluir o cadastro. Tente novamente.");
-}
-
-$stmt->close();
-$conn->close();
-
-header("Location: login.html?sucesso=cadastro");
-exit();
-?>
