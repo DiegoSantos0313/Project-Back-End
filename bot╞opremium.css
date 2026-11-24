@@ -1,12 +1,8 @@
 /* ==========================================================
    BOTÃO PREMIUM - UNICOFFEE
-   ----------------------------------------------------------
-   Descrição:
-   Estilização do botão principal do sistema.
-   Compatível com links (<a>) e pode ser adaptado para <button>.
+   Compatível com links (<a>) e botões (<button>)
    ========================================================== */
 
-/* Container do botão */
 .botao-premium {
     display: flex;
     justify-content: center;
@@ -15,85 +11,103 @@
     text-align: center;
 }
 
-/* Botão */
-.botao-premium a {
-
-    /* Layout */
+.botao-premium > a,
+.botao-premium > button {
+    box-sizing: border-box;
     display: inline-flex;
     align-items: center;
     justify-content: center;
-    min-width: 220px;
+    gap: 0.5rem;
+
+    width: max-content;
+    max-width: 100%;
+    min-width: min(220px, 100%);
     padding: 14px 36px;
 
-    /* Aparência */
-    background: linear-gradient(135deg, #3E2C1C 0%, #5A3B26 100%);
-    color: #FFFFFF;
-    text-decoration: none;
-    border: 2px solid rgba(200, 155, 109, 0.25);
-
-    /* Tipografia */
-    font-size: 1.05rem;
-    font-weight: 700;
-    letter-spacing: 0.03em;
-    line-height: 1.2;
-
-    /* Bordas */
+    color: #fff;
+    background: linear-gradient(135deg, #3e2c1c 0%, #5a3b26 100%);
+    border: 2px solid rgba(200, 155, 109, 0.35);
     border-radius: 999px;
-
-    /* Cursor */
-    cursor: pointer;
-
-    /* Sombra */
     box-shadow: 0 10px 25px rgba(0, 0, 0, 0.18);
 
-    /* Animações */
+    font: inherit;
+    font-size: 1.05rem;
+    font-weight: 700;
+    line-height: 1.2;
+    letter-spacing: 0.03em;
+    text-align: center;
+    text-decoration: none;
+
+    cursor: pointer;
     transition:
         background 0.25s ease,
         transform 0.2s ease,
         box-shadow 0.2s ease,
         border-color 0.2s ease;
-
 }
 
-/* Quando o mouse passa sobre o botão */
-.botao-premium a:hover {
-
-    background: linear-gradient(135deg, #6B4B2D 0%, #8A5E39 100%);
-    border-color: rgba(200, 155, 109, 0.6);
-    transform: translateY(-2px);
-    box-shadow: 0 14px 30px rgba(0, 0, 0, 0.22);
-
+/* Remove a aparência padrão dos botões do navegador. */
+.botao-premium > button {
+    appearance: none;
+    -webkit-appearance: none;
 }
 
-/* Quando o botão é pressionado */
-.botao-premium a:active {
+/* Hover somente em dispositivos que realmente têm mouse ou cursor. */
+@media (hover: hover) and (pointer: fine) {
+    .botao-premium > a:hover,
+    .botao-premium > button:not(:disabled):hover {
+        background: linear-gradient(135deg, #6b4b2d 0%, #8a5e39 100%);
+        border-color: rgba(200, 155, 109, 0.7);
+        transform: translateY(-2px);
+        box-shadow: 0 14px 30px rgba(0, 0, 0, 0.22);
+    }
+}
 
+/* Estado pressionado. */
+.botao-premium > a:active,
+.botao-premium > button:not(:disabled):active {
     transform: translateY(0) scale(0.98);
     box-shadow: 0 8px 18px rgba(0, 0, 0, 0.18);
-
 }
 
-/* Acessibilidade - Navegação por teclado */
-.botao-premium a:focus-visible {
-
-    outline: 3px solid #C89B6D;
+/* Destaque visível ao navegar pelo teclado. */
+.botao-premium > a:focus-visible,
+.botao-premium > button:focus-visible {
+    outline: 3px solid #c89b6d;
     outline-offset: 4px;
-
 }
 
-/* Responsividade */
-@media (max-width: 768px) {
+/* Estado desabilitado para <button disabled>. */
+.botao-premium > button:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+    box-shadow: none;
+}
 
+/* Ajustes para telas menores. */
+@media (max-width: 768px) {
     .botao-premium {
         margin-top: 1.5rem;
     }
 
-    .botao-premium a {
-
+    .botao-premium > a,
+    .botao-premium > button {
         width: min(100%, 320px);
-        font-size: 0.98rem;
+        min-width: 0;
         padding: 14px 18px;
+        font-size: 0.98rem;
+    }
+}
 
+/* Respeita a preferência do usuário por menos animações. */
+@media (prefers-reduced-motion: reduce) {
+    .botao-premium > a,
+    .botao-premium > button {
+        transition: none;
     }
 
+    .botao-premium > a:active,
+    .botao-premium > button:not(:disabled):active {
+        transform: none;
+    }
 }
