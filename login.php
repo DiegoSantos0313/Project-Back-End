@@ -26,8 +26,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 if (password_verify($senha, $user['senha_hash'])) {
 
                     // Criar sessão do usuário
-                    $_SESSION['user_id'] = $user['id'];
-                    $_SESSION['email'] = $email;
+                    $_SESSION['usuario_id'] = $user['id'];
+                    $_SESSION['usuario_nome'] = $email; // Provisório
 
                     // Redirecionar para validar o segundo fator
                     header('Location: segundo_fator.php');
@@ -174,3 +174,4 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
   </div>
 </body>
 </html>
+
